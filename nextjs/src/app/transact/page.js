@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch"
-import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -25,7 +25,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 export default function Swap() {
   const wallet = useWallet();
@@ -39,15 +39,126 @@ export default function Swap() {
   const [accountBalance, setAccountBalance] = useState(null);
   const [jupPriceData, setJupPriceData] = useState({});
   const [connection, setConnection] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [rows, setRows] = useState([
-    { id: 1, name: '', fromToken: '', sellAmount: 0, toToken: '', buyAmount: 0 },
+    {
+      id: 1,
+      name: "",
+      fromToken: "",
+      sellAmount: 0,
+      toToken: "",
+      buyAmount: 0,
+      concealed: true,
+    },
+    {
+      id: 2,
+      name: "",
+      fromToken: "",
+      sellAmount: 0,
+      toToken: "",
+      buyAmount: 0,
+      concealed: true,
+    },
+    {
+      id: 3,
+      name: "",
+      fromToken: "",
+      sellAmount: 0,
+      toToken: "",
+      buyAmount: 0,
+      concealed: true,
+    },
   ]);
 
   const addNewRow = () => {
-    const newRow = { id: rows.length + 1, name: '', fromToken: '', sellAmount: 0, toToken: '', buyAmount: 0 };
+    const newRow = {
+      id: rows.length + 1,
+      name: "",
+      fromToken: "",
+      sellAmount: 0,
+      toToken: "",
+      buyAmount: 0,
+      concealed: true,
+    };
     setRows([...rows, newRow]);
   };
-  
+
+  const removeRow = (rowId) => {
+    if (rows.length > 1 && !isRemoving) {
+      setIsRemoving(true);
+      setRows((currentRows) => currentRows.filter((row) => row.id !== rowId));
+      setTimeout(() => setIsRemoving(false), 1000);
+    }
+  };
+
+const handleSellAmountChange = (rowId, newSellAmount) => {
+  const updatedRows = rows.map(row => {
+    if (row.id === rowId) {
+      return { ...row, sellAmount: newSellAmount };
+    }
+    return row;
+  });
+  setRows(updatedRows);
+  updateBuyAmountForRow(rowId);
+};
+
+  const handleSelectSellToken = (rowId, value) => {
+    setRows(
+      rows.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, fromToken: value };
+        }
+        return row;
+      })
+    );
+  };
+
+  const handleNameChange = (rowId, newName) => {
+    const updatedRows = rows.map((row) => {
+      if (row.id === rowId) {
+        return { ...row, name: newName };
+      }
+      return row;
+    });
+    console.log(rows)
+    setRows(updatedRows);
+  };
+
+  const updateBuyAmountForRow = async (rowId) => {
+    const row = rows.find(r => r.id === rowId);
+    if (!row.fromToken || !row.toToken || !row.sellAmount) {
+      console.log("Incomplete input for price update");
+      return;
+    }
+    try {
+      let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
+      setRows(rows.map(r => r.id === rowId ? { ...r, retrievedBuyAmount: priceData.buyQty } : r));
+    } catch (error) {
+      console.error("Error fetching prices:", error);
+    }
+  };
+
+  const handleConcealChange = (rowId) => {
+    const updatedRows = rows.map((row) => {
+      if (row.id === rowId) {
+        return { ...row, concealed: !row.concealed };
+      }
+      return row;
+    });
+    setRows(updatedRows);
+  };
+
+  const handleSelectBuyToken = (rowId, value) => {
+    setRows(
+      rows.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, toToken: value };
+        }
+        return row;
+      })
+    );
+  };
+
   useEffect(() => {
     const newConnection = new web3.Connection(
       web3.clusterApiUrl("devnet"),
@@ -184,9 +295,13 @@ export default function Swap() {
             <h2 className="text-2xl font-light text-gray-200">
               <b>Stealth</b>folio
             </h2>
-            <p className="text-white text-xs my-auto pl-8 underline">transact</p>
+            <p className="text-white text-xs my-auto pl-8 underline">
+              transact
+            </p>
             <p className="text-white text-xs my-auto pl-8">portfolio</p>
-            <p className="text-white text-xs my-auto pl-8 w-32">investment funds</p>
+            <p className="text-white text-xs my-auto pl-8 w-32">
+              funds
+            </p>
           </div>
           <div className="ml-auto flex w-full space-x-2 sm:justify-end">
             <p className="my-auto font-light">powered by solana</p>
@@ -199,9 +314,11 @@ export default function Swap() {
           </div>
         </div>
         <div className="p-8 space-y-4">
-          <p className="text-2xl text-white font-light text-center">Order book</p>
+          <p className="text-2xl text-white font-light text-center">
+            Order book
+          </p>
           <Table className="w-50 mx-auto">
-            <TableCaption>A list of your stealthy trades.</TableCaption>
+            <TableCaption>Concealed trades are completely invisible to malicious market participants.</TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">Trade Id</TableHead>
@@ -218,89 +335,128 @@ export default function Swap() {
                 <TableHead className="text-right">Conceal</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">
-                  {" "}
-                  <Input
-                    type="text"
-                    disabled
-                    placeholder="TR1"
-                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="text"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                    placeholder="codename"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    
-                  />
-                </TableCell>
-                <TableCell>
-                <Select
-                    onChange={(e) => setFromToken(e.target.value)}
-                  >
-                  <SelectTrigger className="w-[180px] bg-white">
-                    <SelectValue placeholder="Select Sell Token" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Tokens</SelectLabel>
-                      <SelectItem value="SOL">ETH</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
-                      <SelectItem value="ETH">SOL</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                 
-                </TableCell>
-                <TableCell className="text-right"><Input
-              type="number"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-              placeholder="Sell Amount"
-              value={sellAmount}
-              onChange={(e) => setSellAmount(e.target.value)}
-            /></TableCell>
-            <TableCell> <Select
-                    onChange={(e) => setToToken(e.target.value)}
-                  >
-                  <SelectTrigger className="w-[180px] bg-white">
-                    <SelectValue placeholder="Select Buy Token" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Tokens</SelectLabel>
-                      <SelectItem value="SOL">SOL</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
-                      <SelectItem value="ETH">ETH</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select></TableCell>
-            <TableCell><Input
-              disabled
-              type="number"
-              className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-              value={retrievedBuyAmount || ""}
-              placeholder="Buy Amount"
-            /></TableCell>
-            <TableCell><div className="flex">
-              <Switch id="airplane-mode" checked={true}/>
-            </div></TableCell>
-            <TableCell className="text-white bold hover:cursor-pointer text-lg">+</TableCell>
-              </TableRow>
+              {rows.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
+                    {" "}
+                    <Input
+                      type="text"
+                      disabled
+                      placeholder={`TR${index + 1}`}
+                      className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="text"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      placeholder="codename"
+                      value={row.name}
+                      onChange={(e) => handleNameChange(row.id, e.target.value)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      onValueChange={(value) =>
+                        handleSelectSellToken(row.id, value)
+                      }
+                    >
+                      <SelectTrigger className="w-[180px] bg-white">
+                        <SelectValue placeholder="Select Sell Token" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Tokens</SelectLabel>
+                          <SelectItem value="SOL">SOL</SelectItem>
+                          <SelectItem value="USDC">USDC</SelectItem>
+                          <SelectItem value="ETH">ETH</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Input
+                      type="number"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      placeholder="Sell Amount"
+                      value={row.sellAmount}
+                        onChange={(e) => handleSellAmountChange(row.id, e.target.value)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {" "}
+                    <Select
+                      onValueChange={(value) =>
+                        handleSelectBuyToken(row.id, value)
+                      }
+                    >
+                      <SelectTrigger className="w-[180px] bg-white">
+                        <SelectValue placeholder="Select Buy Token" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Tokens</SelectLabel>
+                          <SelectItem value="SOL">SOL</SelectItem>
+                          <SelectItem value="USDC">USDC</SelectItem>
+                          <SelectItem value="ETH">ETH</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      disabled
+                      type="number"
+                      className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      value={retrievedBuyAmount || ""}
+                      placeholder="Buy Amount"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex">
+                      <Switch id="airplane-mode" checked={row.concealed} onCheckedChange={() => handleConcealChange(row.id)}/>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-white bold hover:cursor-pointer text-lg">
+                    {rows.length === 1 && (
+                      <span
+                        onClick={addNewRow}
+                        className="cursor-pointer text-lg p-2"
+                      >
+                        +
+                      </span>
+                    )}
+                    {rows.length > 1 && index !== rows.length - 1 && (
+                      <span
+                        onClick={() => removeRow(row.id)}
+                        className="cursor-pointer text-lg p-2"
+                      >
+                        -
+                      </span>
+                    )}
+                    {index === rows.length - 1 && rows.length !== 1 && (
+                      <span
+                        onClick={addNewRow}
+                        className="cursor-pointer text-lg p-2"
+                      >
+                        +
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
           <div className="flex flex-col items-center">
-          <button
+            <button
               type="submit"
               className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
             >
               Transact
             </button>
-            </div>
+          </div>
           {jupPriceData.buyTkId != null && (
             <div>
               <p>Buy Token ID: {jupPriceData.buyTkId}</p>
@@ -310,7 +466,6 @@ export default function Swap() {
               <p>USD Price: {jupPriceData.usdPrice}</p>
             </div>
           )}
-         
         </div>
       </div>
     </div>
