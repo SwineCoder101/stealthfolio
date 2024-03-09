@@ -2,7 +2,6 @@
   "name": "stealthfolio",
   "version": "0.1.0",
   "description": "Stealthfolio",
-  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,6 +15,7 @@
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-switch": "^1.0.3",
     "@solana/spl-token": "^0.1.8",
+    "@solana/spl-token-registry": "^0.2.4574",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.31",
