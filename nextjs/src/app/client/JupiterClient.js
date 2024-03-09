@@ -168,11 +168,10 @@ async function confirmTransactions(transactions, signature){
 }
 
 async function getTokenInfo(chainId, tokenId) {
-    console.log('fetching token info', chainId, tokenId);
-    const tokenInfo = await Promise.all(
-        await fetch('https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json')
-    ).json();
-    return tokenInfo.tokens.find((token) => token.chainId === Number(chainId) && token.symbol === tokenId);
+  console.log('fetching token info', chainId, tokenId);
+  const response = await fetch('https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json');
+  const data = await response.json();
+  return data.tokens.find(token => token.chainId === Number(chainId) && token.symbol === tokenId);
 }
 
 // async function main(){
