@@ -2,6 +2,15 @@ import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import fetch from 'cross-fetch';
 import { Wallet } from '@project-serum/anchor';
 import bs58 from 'bs58';
+import dotenv from 'dotenv';
+import swapConfig from '../config/SwapDevnetAddresses';
+
+
+// setup environment variables
+dotenv.config();
+const { SOLANA_NETWORK, PRIVATE_KEY, DEVNET_RPC } = process.env;
+
+const RPC = DEVNET_RPC || 'https://api.devnet.solana.com';
 
 //returns
 // {
@@ -13,23 +22,23 @@ import bs58 from 'bs58';
 //   }
 
 async function priceSwap(buyTkId, sellTkId, amount) {
-    const priceUrl = `https://price.jup.ag/v4/price?ids=${buyTkId}&vsToken=${sellTkId}`;
+    const priceUrl = `https://price.jup.ag/v4/price?ids=${sellTkId}&vsToken=${buyTkId}`;
     const priceResponse = await fetch(priceUrl);
     const priceData = await priceResponse.json();
   
-    const { id, mintSymbol, vsToken, vsTokenSymbol, price } = priceData.data[buyTkId];
+    const { id, mintSymbol, vsToken, vsTokenSymbol, price } = priceData.data[sellTkId];
   
-    const buyQty = amount;
-    const sellQty = amount * price;
+    const sellQty = amount;
+    const buyQty = amount * price;
   
     let usdPrice = price;
     if (vsTokenSymbol !== 'USDC') {
-      const usdPriceUrl = `https://price.jup.ag/v4/price?ids=${sellTkId}&vsToken=USDC`;
+      const usdPriceUrl = `https://price.jup.ag/v4/price?ids=${buyTkId}&vsToken=USDC`;
       const usdPriceResponse = await fetch(usdPriceUrl);
       const usdPriceData = await usdPriceResponse.json();
   
-      const sellTokenInUSD = usdPriceData.data[sellTkId].price;
-      usdPrice = price * sellTokenInUSD;
+      const buyTokenInUSD = usdPriceData.data[buyTkId].price;
+      usdPrice = price * buyTokenInUSD;
     }
   
     return {
@@ -61,23 +70,31 @@ async function priceSwap(buyTkId, sellTkId, amount) {
 
   async function pricePortfolio(portfolio) {
     const prices = await Promise.all(
-      portfolio.map((token) => fetchPrice(token.id, token.vsToken, token.amount))
+      portfolio.map((token) => priceSwap(token.id, token.vsToken, token.amount))
     );
     return prices;
   }
 
-
+// input for swapItem
+//     {
+//       buyTkId: 'ETH',
+//       buyQty: 0.186275,
+//       sellTkId: 'USDC',
+//       sellQty: 731.156265100175,
+//       usdPrice: 3925.144357
+//     }
   
-  async function executeSwap(){
+  async function executeSwap(swapItem){
+
     const connection = new Connection('https://neat-hidden-sanctuary.solana-mainnet.discover.quiknode.pro/2af5315d336f9ae920028bbb90a73b724dc1bbed/');
-    const wallet = new Wallet(Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY || '')));
+    const wallet = new Wallet(Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY || '')));
     
     //pass in platformFeeBps as a parameter in the quote.
     const quoteResponse = await (
-        await fetch('https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112\
-      &outputMint=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\
-      &amount=100000000\
-      &slippageBps=50'
+        await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${swapConfig[swapItem.sellTkId]}\
+        &outputMint=${swapConfig[swapItem.buyTkId]}\
+        &amount=${swapItem.buyQty}\
+        &slippageBps=50`
         )
       ).json();
       console.log({ quoteResponse });
@@ -103,29 +120,38 @@ async function priceSwap(buyTkId, sellTkId, amount) {
             })
         ).json();
 
+        console.log({ swapTransaction });
 
-        // deserialize the transaction
-        const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
-        var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-        console.log(transaction);
 
-        // sign the transaction
-        transaction.sign([wallet.payer]);
+        // // deserialize the transaction
+        // const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
+        // var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+        // console.log(transaction);
 
-        // Execute the transaction
-        const rawTransaction = transaction.serialize()
-        const txid = await connection.sendRawTransaction(rawTransaction, {
-        skipPreflight: true,
-        maxRetries: 2
-        });
-        await connection.confirmTransaction(txid);
-        console.log(`https://solscan.io/tx/${txid}`);
+        // // sign the transaction
+        // transaction.sign([wallet.payer]);
 
+        // // Execute the transaction
+        // const rawTransaction = transaction.serialize()
+        // const txid = await connection.sendRawTransaction(rawTransaction, {
+        // skipPreflight: true,
+        // maxRetries: 2
+        // });
+        // await connection.confirmTransaction(txid);
+        // console.log(`https://solscan.io/tx/${txid}`);
 }
 
 async function main(){
-    // const data = await fetchPrice('SOL','ETH',5);
-    // console.log(data);
+
+    const swapItem = {
+        buyTkId: 'ETH',
+        buyQty: 0.186275,
+        sellTkId: 'USDC',
+        sellQty: 731.156265100175,
+        usdPrice: 3925.144357
+    };
+    
+    await executeSwap(swapItem);
 
     // const portfolio = [
     //     {
@@ -141,6 +167,8 @@ async function main(){
     // ];
     // const prices = await pricePortfolio(portfolio);
     // console.log(prices);
+
+
 }
 
 main();
