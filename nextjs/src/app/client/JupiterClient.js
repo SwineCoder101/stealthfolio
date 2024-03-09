@@ -173,6 +173,16 @@ async function confirmTransactions(transactions, signature){
     }));
 }
 
+async function confirmTransaction(signature){
+      console.log('confirming transactions')
+      console.log(signature)
+      const connection = new Connection(RPC, 'confirmed');
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+      const confirmedTransaction = await connection.confirmTransaction({signature, blockhash, lastValidBlockHeight});
+      console.log(confirmedTransaction);
+  }
+
+
 async function getTokenInfo(chainId, tokenId) {
   console.log('fetching token info', chainId, tokenId);
   const response = await fetch('https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json');
@@ -214,4 +224,4 @@ async function getTokenInfo(chainId, tokenId) {
 // main();
 
 
-export { priceSwap, pricePortfolio, confirmTransactions, createSwapTransactions};
+export { priceSwap, pricePortfolio, confirmTransactions, createSwapTransactions, confirmTransaction};

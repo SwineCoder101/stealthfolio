@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { priceSwap, pricePortfolio, createSwapTransactions } from "../client/JupiterClient";
+import { priceSwap, pricePortfolio, createSwapTransactions, confirmTransactions, confirmTransaction } from "../client/JupiterClient";
 import { useEffect } from "react";
 import bs58 from "bs58";
 import Image from "next/image";
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import base58 from "bs58";
 
 export default function Swap() {
   const { publicKey, signAllTransactions, connected } = useWallet();
@@ -149,10 +150,14 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     console.log('swap items:', swapItems)
     console.log('public key:', publicKey.toString())
     const transactions = await createSwapTransactions(swapItems, publicKey.toString());
-    console.log('transactions', transactions)
-    const signatures = await signAllTransactions(transactions);
-    console.log('signatures', signatures)
+    console.log('transactions', transactions);
+    const signedTransactions = await signAllTransactions(transactions);
 
+    // const signatures = signedTransactions.map(t => t.signatures);
+    // console.log('signatures', signatures);
+    // await confirmTransactions(transactions, base58.encode(signedTransactions[0].signatures[0]));
+
+    await confirmTransaction(base58.encode(signedTransactions[0].signatures[0]));
     }
   }
 
