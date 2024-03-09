@@ -1,10 +1,9 @@
 import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 // import { TokenInfo } from "@solana/spl-token-registry"
 import fetch from 'cross-fetch';
-import { Wallet } from '@project-serum/anchor';
-import bs58 from 'bs58';
+// import { Wallet } from '@project-serum/anchor';
+// import bs58 from 'bs58';
 import dotenv from 'dotenv';
-import swapConfig from '../config/SwapConfig.js';
 
 
 // setup environment variables
@@ -86,10 +85,10 @@ async function priceSwap(buyTkId, sellTkId, amount) {
 //       usdPrice: 3925.144357
 //     }
   
-  async function createSwapTransactions(swapItems){
+  async function createSwapTransactions(swapItems, publicKey){
 
     console.log('executing swap, on chain', chainId, 'with rpc', RPC);
-    const wallet = new Wallet(Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY || '')));
+    // const wallet = new Wallet(Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY || '')));
 
     const transactions = await Promise.all(swapItems.map(async (swapItem) => {
         const sellTokenInfo = await getTokenInfo(chainId, swapItem.sellTkId);
@@ -116,7 +115,7 @@ async function priceSwap(buyTkId, sellTkId, amount) {
                     // quoteResponse from /quote api
                     quoteResponse,
                     // user public key to be used for the swap
-                    userPublicKey: wallet.publicKey.toString(),
+                    userPublicKey: publicKey.toString(),
                     // auto wrap and unwrap SOL. default is true
                     wrapAndUnwrapSol: true,
                     prioritizationFeeLamports: 'auto'
@@ -175,34 +174,34 @@ async function getTokenInfo(chainId, tokenId) {
     return tokenInfo.tokens.find((token) => token.chainId === Number(chainId) && token.symbol === tokenId);
 }
 
-async function main(){
+// async function main(){
 
-    const swapItem1 = await priceSwap('USDC', 'SOL', 0.1);
-    const swapItem2 = await priceSwap('USDC', 'SOL', 0.11);
-    const swapItem3 = await priceSwap('USDC', 'SOL', 0.12);
+//     const swapItem1 = await priceSwap('USDC', 'SOL', 0.1);
+//     const swapItem2 = await priceSwap('USDC', 'SOL', 0.11);
+//     const swapItem3 = await priceSwap('USDC', 'SOL', 0.12);
 
-    // console.log(swapItem);
+//     // console.log(swapItem);
 
-    await executeSwaps([swapItem1, swapItem2, swapItem3]);
-
-
-    // const portfolio = [
-    //     {
-    //         id: 'SOL',
-    //         vsToken: 'USDC',
-    //         amount: 5
-    //     },
-    //     {
-    //         id: 'ETH',
-    //         vsToken: 'USDC',
-    //         amount: 0.186275
-    //     }
-    // ];
-    // const prices = await pricePortfolio(portfolio);
-    // console.log(prices);
+//     await executeSwaps([swapItem1, swapItem2, swapItem3]);
 
 
-}
+//     // const portfolio = [
+//     //     {
+//     //         id: 'SOL',
+//     //         vsToken: 'USDC',
+//     //         amount: 5
+//     //     },
+//     //     {
+//     //         id: 'ETH',
+//     //         vsToken: 'USDC',
+//     //         amount: 0.186275
+//     //     }
+//     // ];
+//     // const prices = await pricePortfolio(portfolio);
+//     // console.log(prices);
+
+
+// }
 
 
 
