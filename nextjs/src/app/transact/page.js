@@ -176,6 +176,9 @@ export default function Swap() {
             <h2 className="text-2xl font-light text-gray-200">
               <b>Stealth</b>folio
             </h2>
+            <p className="text-white text-xs my-auto pl-8 underline">transact</p>
+            <p className="text-white text-xs my-auto pl-8">portfolio</p>
+            <p className="text-white text-xs my-auto pl-8 w-32">investment funds</p>
           </div>
           <div className="ml-auto flex w-full space-x-2 sm:justify-end">
             <p className="my-auto font-light">proudly on solana</p>
@@ -211,7 +214,7 @@ export default function Swap() {
               <TableRow>
                 <TableCell className="font-medium">
                   {" "}
-                  <input
+                  <Input
                     type="text"
                     disabled
                     placeholder="TR1"
@@ -219,28 +222,34 @@ export default function Swap() {
                   />
                 </TableCell>
                 <TableCell>
-                  <input
+                  <Input
                     type="text"
                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                    placeholder="Name/Label"
+                    placeholder="codename"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    
                   />
                 </TableCell>
                 <TableCell>
-                  <select
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                    value={fromToken}
+                <Select
                     onChange={(e) => setFromToken(e.target.value)}
                   >
-                    {" "}
-                    <option value="">Select Sell Token</option>
-                    <option value="SOL">SOL</option>
-                    <option value="USDC">USDC</option>
-                    <option value="ETH">ETH</option>
-                  </select>
+                  <SelectTrigger className="w-[180px] bg-white">
+                    <SelectValue placeholder="Select Sell Token" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Tokens</SelectLabel>
+                      <SelectItem value="SOL">SOL</SelectItem>
+                      <SelectItem value="USDC">USDC</SelectItem>
+                      <SelectItem value="ETH">ETH</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                 
                 </TableCell>
-                <TableCell className="text-right"><input
+                <TableCell className="text-right"><Input
               type="number"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
               placeholder="Sell Amount"
@@ -257,7 +266,7 @@ export default function Swap() {
               <option value="USDC">USDC</option>
               <option value="ETH">ETH</option>
             </select></TableCell>
-            <TableCell><input
+            <TableCell><Input
               disabled
               type="number"
               className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
@@ -275,7 +284,7 @@ export default function Swap() {
               type="submit"
               className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-100 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
             >
-              Swap
+              Transact
             </button>
             </div>
           {jupPriceData.buyTkId != null && (
