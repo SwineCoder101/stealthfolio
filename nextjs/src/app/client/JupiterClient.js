@@ -87,7 +87,8 @@ async function priceSwap(buyTkId, sellTkId, amount) {
 //     }
   
   async function createSwapTransactions(swapItems, publicKey){
-
+    console.log('swap items:', swapItems)
+    console.log('public key:', publicKey)
     console.log('executing swap, on chain', chainId, 'with rpc', RPC);
     // const wallet = new Wallet(Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY || '')));
 
@@ -101,10 +102,10 @@ async function priceSwap(buyTkId, sellTkId, amount) {
         //pass in platformFeeBps as a parameter in the quote.
     
         const quoteUrl =`https://quote-api.jup.ag/v6/quote?inputMint=${sellTokenInfo.address}&outputMint=${buyTokenInfo.address}&amount=${swapItem.buyQty * 10 ^ buyTokenInfo.decimals}&slippageBps=50`;
-        const quoteResponse = await (await fetch(quoteUrl)).json();
+        const quoteResponseRaw = await (await fetch(quoteUrl)).json();
           
-        console.log({ quoteResponse });
-    
+        console.log({ quoteResponseRaw });
+        let quoteResponse = quoteResponseRaw;
           // get serialized transactions for the swap
             const { swapTransaction } = await (
                 await fetch('https://quote-api.jup.ag/v6/swap', {
@@ -128,8 +129,9 @@ async function priceSwap(buyTkId, sellTkId, amount) {
     
             console.log({ swapTransaction });
     
-    
+              
             // deserialize the transaction
+            console.log('Deserialized transaction')
             console.log({ quoteResponse, swapTransaction });
             const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
             var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
@@ -160,6 +162,9 @@ async function priceSwap(buyTkId, sellTkId, amount) {
 }
 
 async function confirmTransactions(transactions, signature){
+  console.log('confirming transactions')
+    console.log(transactions)
+    console.log(signature)
     const connection = new Connection(RPC, 'confirmed');
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 

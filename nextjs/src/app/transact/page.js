@@ -4,6 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { priceSwap, pricePortfolio, createSwapTransactions } from "../client/JupiterClient";
 import { useEffect } from "react";
+import bs58 from "bs58";
 import Image from "next/image";
 import * as web3 from "@solana/web3.js";
 import {
@@ -127,6 +128,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
   const submitTransaction = async () => {
     console.log(connected)
     console.log(publicKey)
+    console.log('RUNNING')
     if (connected && publicKey) {
       console.log('running')
     let portfolio = [];
@@ -144,11 +146,13 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     console.log(pricedPortfolio);
 
     const swapItems = pricedPortfolio;
-    
+    console.log('swap items:', swapItems)
+    console.log('public key:', publicKey.toString())
     const transactions = await createSwapTransactions(swapItems, publicKey.toString());
     console.log('transactions', transactions)
     const signatures = await signAllTransactions(transactions);
-    confirmTransaction(signatures);
+    console.log('signatures', signatures)
+
     }
   }
 
