@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { priceSwap, pricePortfolio } from "../client/JupiterClient";
 import { useEffect } from "react";
-import Image from 'next/image';
+import Image from "next/image";
 import * as web3 from "@solana/web3.js";
 import {
   Table,
@@ -14,7 +14,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Swap() {
   const wallet = useWallet();
@@ -153,107 +164,131 @@ export default function Swap() {
     <div className="h-screen bg-black">
       <div className="hidden h-full flex-col md:flex">
         <div className="bg-black text-white container flex flex-col items-start justify-between space-y-2 py-4 sm:flex-row sm:items-center sm:space-y-0 md:h-16 border-b border-gray-900">
-           <div className="flex flex-row space-x-2">
+          <div className="flex flex-row space-x-2">
             <div className="bg-gray-900 rounded-lg h-8 w-8 p-1">
-            <Image
-            src="/stealthy.png"
-            width={30}
-            height={30}
-            alt="Picture of the author"
-          />
-          </div>
-          <h2 className="text-2xl font-light text-gray-200"><b>Stealth</b>folio</h2>
+              <Image
+                src="/stealthy.png"
+                width={30}
+                height={30}
+                alt="Picture of the author"
+              />
+            </div>
+            <h2 className="text-2xl font-light text-gray-200">
+              <b>Stealth</b>folio
+            </h2>
           </div>
           <div className="ml-auto flex w-full space-x-2 sm:justify-end">
-          <p className="my-auto font-light">proudly on solana</p>
-          <img
-            className="h-[2%] w-[2%] my-auto"
-            src="/solana.png"
-            alt="Picture of the author"
-          />
+            <p className="my-auto font-light">proudly on solana</p>
+            <img
+              className="h-[2%] w-[2%] my-auto"
+              src="/solana.png"
+              alt="Picture of the author"
+            />
             <WalletMultiButton />
-            
           </div>
         </div>
         <div className="p-8 space-y-4">
-        <p className="text-2xl text-white font-light">Order book</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSwap();
-          }}
-        >
-          <input
-            type="text"
-            disabled
-            placeholder="TR1"
-            className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-          />
-          <input
-            type="text"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-            placeholder="Name/Label"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <select
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-            value={fromToken}
-            onChange={(e) => setFromToken(e.target.value)}
-          >
-            <option value="">Select Sell Token</option>
-            <option value="SOL">SOL</option>
-            <option value="USDC">USDC</option>
-            <option value="ETH">ETH</option>
-          </select>
-          {accountBalance !== null && (
-            <p>Max available to sell: {accountBalance}</p>
-          )}
-          <input
-            type="number"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-            placeholder="Sell Amount"
-            value={sellAmount}
-            onChange={(e) => setSellAmount(e.target.value)}
-          />
-          {/* <p className="text-xs">USD amount: {usdEquivalent} </p> */}
-          <select
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-            value={toToken}
-            onChange={(e) => setToToken(e.target.value)}
-          >
-            <option value="">Select Buy Token</option>
-            <option value="SOL">SOL</option>
-            <option value="USDC">USDC</option>
-            <option value="ETH">ETH</option>
-          </select>
-          <input
-            disabled
-            type="number"
-            className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-            value={retrievedBuyAmount || ""}
-            placeholder="Buy Amount"
-          />
-          {/* <p className="text-xs">Balance:</p>
-                    <p className="text-xs">USD amount: (-X.XX%)</p> */}
-          {/* <button type="submit" className="bg-gray-50 border border-gray-300 hover:bg-gray-100 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" onClick={() => getPrices()}>Get latest prices</button> */}
+          <p className="text-2xl text-white font-light text-center">Order book</p>
+          <Table className="w-50 mx-auto">
+            <TableCaption>A list of your stealthy trades.</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Trade Id</TableHead>
+                <TableHead>Codename</TableHead>
+                <TableHead>Sell Token</TableHead>
+                <TableHead>
+                  Sell Amount{" "}
+                  {accountBalance !== null && (
+                    <span>(Max available to sell: {accountBalance})</span>
+                  )}
+                </TableHead>
+                <TableHead>Buy Token</TableHead>
+                <TableHead>Buy Amount</TableHead>
+                <TableHead className="text-right">Conceal</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">
+                  {" "}
+                  <input
+                    type="text"
+                    disabled
+                    placeholder="TR1"
+                    className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                  />
+                </TableCell>
+                <TableCell>
+                  <input
+                    type="text"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                    placeholder="Name/Label"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <select
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                    value={fromToken}
+                    onChange={(e) => setFromToken(e.target.value)}
+                  >
+                    {" "}
+                    <option value="">Select Sell Token</option>
+                    <option value="SOL">SOL</option>
+                    <option value="USDC">USDC</option>
+                    <option value="ETH">ETH</option>
+                  </select>
+                </TableCell>
+                <TableCell className="text-right"><input
+              type="number"
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              placeholder="Sell Amount"
+              value={sellAmount}
+              onChange={(e) => setSellAmount(e.target.value)}
+            /></TableCell>
+            <TableCell><select
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              value={toToken}
+              onChange={(e) => setToToken(e.target.value)}
+            >
+              <option value="">Select Buy Token</option>
+              <option value="SOL">SOL</option>
+              <option value="USDC">USDC</option>
+              <option value="ETH">ETH</option>
+            </select></TableCell>
+            <TableCell><input
+              disabled
+              type="number"
+              className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              value={retrievedBuyAmount || ""}
+              placeholder="Buy Amount"
+            /></TableCell>
+            <TableCell><div className="flex">
+              <Switch id="airplane-mode" />
+            </div></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+          <div className="flex flex-col items-center">
           <button
-            type="submit"
-            className="bg-gray-50 border border-gray-300 hover:bg-gray-100 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-          >
-            Swap
-          </button>
-        </form>
-        {jupPriceData.buyTkId != null && (
-          <div>
-            <p>Buy Token ID: {jupPriceData.buyTkId}</p>
-            <p>Buy Quantity: {jupPriceData.buyQty}</p>
-            <p>Sell Token ID: {jupPriceData.sellTkId}</p>
-            <p>Sell Quantity: {jupPriceData.sellQty}</p>
-            <p>USD Price: {jupPriceData.usdPrice}</p>
-          </div>
-        )}
-      </div>
+              type="submit"
+              className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-100 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+            >
+              Swap
+            </button>
+            </div>
+          {jupPriceData.buyTkId != null && (
+            <div>
+              <p>Buy Token ID: {jupPriceData.buyTkId}</p>
+              <p>Buy Quantity: {jupPriceData.buyQty}</p>
+              <p>Sell Token ID: {jupPriceData.sellTkId}</p>
+              <p>Sell Quantity: {jupPriceData.sellQty}</p>
+              <p>USD Price: {jupPriceData.usdPrice}</p>
+            </div>
+          )}
+         
+        </div>
       </div>
     </div>
   );
