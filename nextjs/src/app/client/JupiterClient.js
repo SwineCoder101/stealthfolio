@@ -8,23 +8,23 @@
 //   }
 
 async function priceSwap(buyTkId, sellTkId, amount) {
-    const priceUrl = `https://price.jup.ag/v4/price?ids=${buyTkId}&vsToken=${sellTkId}`;
+    const priceUrl = `https://price.jup.ag/v4/price?ids=${sellTkId}&vsToken=${buyTkId}`;
     const priceResponse = await fetch(priceUrl);
     const priceData = await priceResponse.json();
   
-    const { id, mintSymbol, vsToken, vsTokenSymbol, price } = priceData.data[buyTkId];
+    const { id, mintSymbol, vsToken, vsTokenSymbol, price } = priceData.data[sellTkId];
   
-    const buyQty = amount;
-    const sellQty = amount * price;
+    const sellQty = amount;
+    const buyQty = amount * price;
   
     let usdPrice = price;
     if (vsTokenSymbol !== 'USDC') {
-      const usdPriceUrl = `https://price.jup.ag/v4/price?ids=${sellTkId}&vsToken=USDC`;
+      const usdPriceUrl = `https://price.jup.ag/v4/price?ids=${buyTkId}&vsToken=USDC`;
       const usdPriceResponse = await fetch(usdPriceUrl);
       const usdPriceData = await usdPriceResponse.json();
   
-      const sellTokenInUSD = usdPriceData.data[sellTkId].price;
-      usdPrice = price * sellTokenInUSD;
+      const buyTokenInUSD = usdPriceData.data[buyTkId].price;
+      usdPrice = price * buyTokenInUSD;
     }
   
     return {
