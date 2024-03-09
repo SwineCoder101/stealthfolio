@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { priceSwap, pricePortfolio } from "../client/JupiterClient";
+import { priceSwap, pricePortfolio, createSwapTransactions } from "../client/JupiterClient";
 import { useEffect } from "react";
 import Image from "next/image";
 import * as web3 from "@solana/web3.js";
@@ -123,6 +123,26 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     console.log(rows)
     setRows(updatedRows);
   };
+
+  const submitTransaction = async () => {
+    let portfolio = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
+        // let toTokenId = getTokenMintAddress(rows[i].toToken);
+        // let fromTokenId = getTokenMintAddress(rows[i].fromToken);
+        portfolio.push({ id: rows[i].toToken, vsToken: rows[i].fromToken, amount: rows[i].sellAmount });
+      } else {
+        continue;
+      }
+    }
+    console.log(portfolio);
+    const pricedPortfolio = await pricePortfolio(portfolio);
+    console.log(pricedPortfolio);
+
+    const swapItems = pricedPortfolio;
+    
+    createSwapTransactions(swapItems, wallet.publicKey);
+    }
 
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find(r => r.id === rowId);
@@ -453,6 +473,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
             <button
               type="submit"
               className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              onClick={() => submitTransaction()}
             >
               Transact
             </button>

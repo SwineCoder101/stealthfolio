@@ -8,10 +8,13 @@ import dotenv from 'dotenv';
 
 // setup environment variables
 dotenv.config();
-const { SOLANA_NETWORK, PRIVATE_KEY, DEVNET_RPC,CHAIN_ID,MAINNET_RPC} = process.env;
-
-const RPC = MAINNET_RPC || 'https://api.devnet.solana.com';
-const chainId = CHAIN_ID;
+//const { SOLANA_NETWORK, NEXT_PUBLIC_PRIVATE_KEY, DEVNET_RPC,CHAIN_ID,NEXT_PUBLIC_MAINNET_RPC} = process.env;
+const SOLANA_NETWORK = process.env.NEXT_PUBLIC_RPC;
+const PRIVATE_KEY = process.env.NEXT_PUBLIC_PRIVATE_KEY;
+const DEVNET_RPC = NEXT_PUBLIC_DEVNET_RPC;
+const MAINNET_RPC = process.env.NEXT_PUBLIC_MAINNET_RPC;
+const RPC = process.env.NEXT_PUBLIC_MAINNET_RPC || 'https://api.devnet.solana.com';
+const chainId = process.env.NEXT_PUBLIC_CHAIN_ID;
 
 //returns
 // {
