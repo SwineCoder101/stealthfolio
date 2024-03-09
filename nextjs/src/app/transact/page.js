@@ -39,7 +39,15 @@ export default function Swap() {
   const [accountBalance, setAccountBalance] = useState(null);
   const [jupPriceData, setJupPriceData] = useState({});
   const [connection, setConnection] = useState(null);
+  const [rows, setRows] = useState([
+    { id: 1, name: '', fromToken: '', sellAmount: 0, toToken: '', buyAmount: 0 },
+  ]);
 
+  const addNewRow = () => {
+    const newRow = { id: rows.length + 1, name: '', fromToken: '', sellAmount: 0, toToken: '', buyAmount: 0 };
+    setRows([...rows, newRow]);
+  };
+  
   useEffect(() => {
     const newConnection = new web3.Connection(
       web3.clusterApiUrl("devnet"),
@@ -181,7 +189,7 @@ export default function Swap() {
             <p className="text-white text-xs my-auto pl-8 w-32">investment funds</p>
           </div>
           <div className="ml-auto flex w-full space-x-2 sm:justify-end">
-            <p className="my-auto font-light">proudly on solana</p>
+            <p className="my-auto font-light">powered by solana</p>
             <img
               className="h-[2%] w-[2%] my-auto"
               src="/solana.png"
@@ -241,9 +249,9 @@ export default function Swap() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Tokens</SelectLabel>
-                      <SelectItem value="SOL">SOL</SelectItem>
+                      <SelectItem value="SOL">ETH</SelectItem>
                       <SelectItem value="USDC">USDC</SelectItem>
-                      <SelectItem value="ETH">ETH</SelectItem>
+                      <SelectItem value="ETH">SOL</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -256,16 +264,21 @@ export default function Swap() {
               value={sellAmount}
               onChange={(e) => setSellAmount(e.target.value)}
             /></TableCell>
-            <TableCell><select
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-              value={toToken}
-              onChange={(e) => setToToken(e.target.value)}
-            >
-              <option value="">Select Buy Token</option>
-              <option value="SOL">SOL</option>
-              <option value="USDC">USDC</option>
-              <option value="ETH">ETH</option>
-            </select></TableCell>
+            <TableCell> <Select
+                    onChange={(e) => setToToken(e.target.value)}
+                  >
+                  <SelectTrigger className="w-[180px] bg-white">
+                    <SelectValue placeholder="Select Buy Token" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Tokens</SelectLabel>
+                      <SelectItem value="SOL">SOL</SelectItem>
+                      <SelectItem value="USDC">USDC</SelectItem>
+                      <SelectItem value="ETH">ETH</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select></TableCell>
             <TableCell><Input
               disabled
               type="number"
@@ -274,15 +287,16 @@ export default function Swap() {
               placeholder="Buy Amount"
             /></TableCell>
             <TableCell><div className="flex">
-              <Switch id="airplane-mode" />
+              <Switch id="airplane-mode" checked={true}/>
             </div></TableCell>
+            <TableCell className="text-white bold hover:cursor-pointer text-lg">+</TableCell>
               </TableRow>
             </TableBody>
           </Table>
           <div className="flex flex-col items-center">
           <button
               type="submit"
-              className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-100 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+              className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
             >
               Transact
             </button>
