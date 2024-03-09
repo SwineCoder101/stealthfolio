@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 
 export default function Swap() {
-  const {wallet, signAllTransactions, connected} = useWallet();
+  const { publicKey, signAllTransactions, connected } = useWallet();
   const [name, setName] = useState("");
   const [fromToken, setFromToken] = useState("");
   const [sellAmount, setSellAmount] = useState(0);
@@ -125,6 +125,10 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
   };
 
   const submitTransaction = async () => {
+    console.log(connected)
+    console.log(publicKey)
+    if (connected && publicKey) {
+      console.log('running')
     let portfolio = [];
     for (let i = 0; i < rows.length; i++) {
       if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
@@ -141,10 +145,12 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
 
     const swapItems = pricedPortfolio;
     
-    const transactions = createSwapTransactions(swapItems, wallet.publicKey);
+    const transactions = await createSwapTransactions(swapItems, publicKey.toString());
+    console.log('transactions', transactions)
     const signatures = await signAllTransactions(transactions);
     confirmTransaction(signatures);
     }
+  }
 
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find(r => r.id === rowId);
@@ -190,7 +196,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
   }, []);
 
   const handleSwap = async () => {
-    if (!wallet.connected) {
+    if (!connected) {
       alert("Please connect your wallet.");
       return;
     }
@@ -232,18 +238,18 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
   };
 
   const getTokenBalance = async (tokenMintAddress) => {
-    if (!wallet.connected || !wallet.publicKey || !connection) return;
+    if (!connected || !publicKey || !connection) return;
 
     let balance = 0;
     console.log("tokenMintAddress", tokenMintAddress);
     if (tokenMintAddress === "SOL") {
       balance =
-        (await connection.getBalance(wallet.publicKey)) / web3.LAMPORTS_PER_SOL;
+        (await connection.getBalance(publicKey)) / web3.LAMPORTS_PER_SOL;
       console.log("SOL balance:", balance);
     } else {
       const tokenMint = new web3.PublicKey(tokenMintAddress);
       const accounts = await connection.getParsedTokenAccountsByOwner(
-        wallet.publicKey,
+        publicKey,
         { mint: tokenMint }
       );
 
@@ -259,7 +265,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
 
   useEffect(() => {
     const updateTokenBalance = async () => {
-      if (fromToken && wallet.connected) {
+      if (fromToken && connected) {
         const tokenMintAddress = getTokenMintAddress(fromToken);
         console.log("TOKEN MINT ADDRESS", tokenMintAddress);
         const balance = await getTokenBalance(tokenMintAddress);
@@ -281,7 +287,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
 
     updateTokenBalance();
     // updateUSDEquivalent()
-  }, [fromToken, wallet.connected, wallet.publicKey]);
+  }, [fromToken, connected, publicKey]);
 
   useEffect(() => {
     const fetchPrices = async () => {

@@ -130,6 +130,7 @@ async function priceSwap(buyTkId, sellTkId, amount) {
     
     
             // deserialize the transaction
+            console.log({ quoteResponse, swapTransaction });
             const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
             var transaction = VersionedTransaction.deserialize(swapTransactionBuf);
             console.log(transaction);
