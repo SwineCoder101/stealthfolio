@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 
 export default function Swap() {
-  const wallet = useWallet();
+  const {wallet, signAllTransactions, connected} = useWallet();
   const [name, setName] = useState("");
   const [fromToken, setFromToken] = useState("");
   const [sellAmount, setSellAmount] = useState(0);
@@ -141,7 +141,9 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
 
     const swapItems = pricedPortfolio;
     
-    createSwapTransactions(swapItems, wallet.publicKey);
+    const transactions = createSwapTransactions(swapItems, wallet.publicKey);
+    const signatures = await signAllTransactions(transactions);
+    confirmTransaction(signatures);
     }
 
   const updateBuyAmountForRow = async (rowId) => {
