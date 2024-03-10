@@ -173,10 +173,11 @@ async function confirmTransactions(transactions, signature){
     }));
 }
 
-async function confirmTransaction(signature){
-      console.log('confirming transactions')
-      console.log(signature)
-      const connection = new Connection(RPC, 'confirmed');
+async function confirmTransaction(signature,connection){
+      console.log('confirming transactions');
+      console.log(signature);
+      console.log("using connection: ",connection );
+    //   const connection = new Connection(RPC, 'confirmed');
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
       const confirmedTransaction = await connection.confirmTransaction({signature, blockhash, lastValidBlockHeight});
       console.log(confirmedTransaction);

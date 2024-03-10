@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { priceSwap, pricePortfolio, createSwapTransactions, confirmTransactions, confirmTransaction } from "../client/JupiterClient";
@@ -28,9 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import base58 from "bs58";
+import { send } from "process";
 
 export default function Swap() {
-  const { publicKey, signAllTransactions, connected } = useWallet();
+  const { publicKey, signAllTransactions, connected, sendTransaction } = useWallet();
   const [name, setName] = useState("");
   const [fromToken, setFromToken] = useState("");
   const [sellAmount, setSellAmount] = useState(0);
@@ -84,6 +86,7 @@ export default function Swap() {
     };
     setRows([...rows, newRow]);
   };
+  const RPC = process.env.NEXT_PUBLIC_MAINNET_RPC;
 
   const removeRow = (rowId) => {
     if (rows.length > 1 && !isRemoving) {
@@ -151,13 +154,24 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     console.log('public key:', publicKey.toString())
     const transactions = await createSwapTransactions(swapItems, publicKey.toString());
     console.log('transactions', transactions);
-    const signedTransactions = await signAllTransactions(transactions);
+    // const signedTransactions = await signAllTransactions(transactions);
+
+      const {
+        context: { slot: minContextSlot },
+        value: { blockhash, lastValidBlockHeight },
+    } = await connection.getLatestBlockhashAndContext();
+
+
+    const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
+    
+    await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
 
     // const signatures = signedTransactions.map(t => t.signatures);
     // console.log('signatures', signatures);
     // await confirmTransactions(transactions, base58.encode(signedTransactions[0].signatures[0]));
 
-    await confirmTransaction(base58.encode(signedTransactions[0].signatures[0]));
+    //signature
+    // await confirmTransaction(base58.encode(signature),connection);
     }
   }
 
@@ -197,10 +211,11 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
   };
 
   useEffect(() => {
-    const newConnection = new web3.Connection(
-      web3.clusterApiUrl("devnet"),
-      "confirmed"
-    );
+    // const newConnection = new web3.Connection(
+    //   web3.clusterApiUrl("mainnet-beta"),
+    //   "confirmed"
+    // );
+    const newConnection = new Connection(RPC, 'confirmed');
     setConnection(newConnection);
   }, []);
 
