@@ -27,7 +27,6 @@ async function priceSwap(buyTkId, sellTkId, amount) {
     const priceUrl = `https://price.jup.ag/v4/price?ids=${sellTkId}&vsToken=${buyTkId}`;
     const priceResponse = await fetch(priceUrl);
     const priceData = await priceResponse.json();
-
     const { id, mintSymbol, vsToken, vsTokenSymbol, price } = priceData.data[sellTkId];
   
     const sellQty = amount;

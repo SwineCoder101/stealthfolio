@@ -1,10 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { priceSwap, pricePortfolio, createSwapTransactions, confirmTransactions, confirmTransaction } from "../client/JupiterClient";
-import { useEffect } from "react";
 import bs58 from "bs58";
 import Image from "next/image";
 import * as web3 from "@solana/web3.js";
@@ -37,12 +36,14 @@ export default function Swap() {
   const [fromToken, setFromToken] = useState("");
   const [sellAmount, setSellAmount] = useState(0);
   const [toToken, setToToken] = useState("");
+  const [lastUpdatedRowId, setLastUpdatedRowId] = useState(null);
   const [retrievedBuyAmount, setRetrievedBuyAmount] = useState(0);
   const [usdEquivalent, setUsdEquivalent] = useState(0);
   const [amount, setAmount] = useState(0);
   const [accountBalance, setAccountBalance] = useState(null);
   const [jupPriceData, setJupPriceData] = useState({});
   const [connection, setConnection] = useState(null);
+  const timeoutRef = useRef(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [rows, setRows] = useState([
     {
@@ -86,6 +87,8 @@ export default function Swap() {
     };
     setRows([...rows, newRow]);
   };
+  const prevRowsRef = useRef(rows);
+
   const RPC = process.env.NEXT_PUBLIC_MAINNET_RPC;
 
   const removeRow = (rowId) => {
@@ -96,28 +99,72 @@ export default function Swap() {
     }
   };
 
-const handleSellAmountChange = (rowId, newSellAmount) => {
-  const updatedRows = rows.map(row => {
-    if (row.id === rowId) {
-      return { ...row, sellAmount: newSellAmount };
-    }
-    return row;
-  });
-  setRows(updatedRows);
-  updateBuyAmountForRow(rowId);
-};
-
-  const handleSelectSellToken = (rowId, value) => {
-    setRows(
-      rows.map((row) => {
-        if (row.id === rowId) {
-          return { ...row, fromToken: value };
-        }
-        return row;
-      })
-    );
+  const handleSellAmountChange = async (rowId, newSellAmount) => {
+    const updatedRows = rows.map(row => {
+      if (row.id === rowId) {
+        return { ...row, sellAmount: newSellAmount };
+      }
+      return row;
+    });
+  
+    setRows(updatedRows);
+    setLastUpdatedRowId(rowId);
   };
 
+  useEffect(() => {
+    // Function to compare relevant row data
+    const isRowChanged = (prevRow, newRow) => {
+      return prevRow.fromToken !== newRow.fromToken ||
+             prevRow.sellAmount !== newRow.sellAmount ||
+             prevRow.toToken !== newRow.toToken;
+    };
+  
+    // Map to store the latest row data for comparison
+    const latestRowData = new Map();
+  
+    rows.forEach(row => {
+      const prevRowData = latestRowData.get(row.id) || {};
+      if (isRowChanged(prevRowData, row)) {
+        // Update the buy amount if the relevant data has changed
+        updateBuyAmountForRow(row.id);
+      }
+      // Update the map with the latest row data
+      latestRowData.set(row.id, { ...row });
+    });
+  
+    // Cleanup function to clear the map
+    return () => latestRowData.clear();
+  }, [rows]); // Watch for changes in the rows
+  
+
+  const handleSelectSellToken = (rowId, e) => {
+    const newValue = e.target.value;
+   
+    setRows(rows.map(row => {
+      if (row.id === rowId) {
+        return { ...row, fromToken: newValue };
+      }
+      console.log(rowId)
+      console.log(newValue)
+      console.log('return row')
+      return row;
+    }));
+    // setTimeout(() => {
+    //   console.log('buy run 2')
+    //   updateBuyAmountForRow(rowId);
+    // }, 2000);
+  };
+  
+  const handleSelectBuyToken = (rowId, e) => {
+    const newValue = e.target.value;
+    setRows(rows.map(row => {
+      if (row.id === rowId) {
+        return { ...row, toToken: newValue };
+      }
+      return row;
+    }));
+  };
+  
   const handleNameChange = (rowId, newName) => {
     const updatedRows = rows.map((row) => {
       if (row.id === rowId) {
@@ -138,9 +185,9 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     let portfolio = [];
     for (let i = 0; i < rows.length; i++) {
       if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
-        // let toTokenId = getTokenMintAddress(rows[i].toToken);
-        // let fromTokenId = getTokenMintAddress(rows[i].fromToken);
-        portfolio.push({ id: rows[i].toToken, vsToken: rows[i].fromToken, amount: rows[i].sellAmount });
+        //let toTokenId = getTokenMintAddress(rows[i].toToken);
+        //let fromTokenId = getTokenMintAddress(rows[i].fromToken);
+        portfolio.push({ id: rows[i].fromToken, vsToken: rows[i].toToken, amount: rows[i].sellAmount });
       } else {
         continue;
       }
@@ -163,9 +210,10 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
 
 
     const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
+    console.log(signature)
+    let confirmation = await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
     
-    await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
-
+    console.log(confirmation)
     // const signatures = signedTransactions.map(t => t.signatures);
     // console.log('signatures', signatures);
     // await confirmTransactions(transactions, base58.encode(signedTransactions[0].signatures[0]));
@@ -175,19 +223,47 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     }
   }
 
+  
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find(r => r.id === rowId);
-    if (!row.fromToken || !row.toToken || !row.sellAmount) {
+    if (!row || !row.fromToken || !row.toToken || !row.sellAmount) {
       console.log("Incomplete input for price update");
       return;
     }
+  
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  
     try {
+      console.log('Updating buy amount for row', rowId);
       let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
-      setRows(rows.map(r => r.id === rowId ? { ...r, retrievedBuyAmount: priceData.buyQty } : r));
+  
+      setRows(currentRows => 
+        currentRows.map(r => r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r)
+      );
     } catch (error) {
       console.error("Error fetching prices:", error);
     }
   };
+  
+
+  
+  // const updateBuyAmountForRow = async (rowId) => {
+  //   console.log('buy run')
+  //   console.log(rowId)
+  //   const row = rows.find(r => r.id === rowId);
+  //   if (!row.fromToken || !row.toToken || !row.sellAmount) {
+  //     console.log("Incomplete input for price update");
+  //     return;
+  //   }
+  //   try {
+  //     console.log('rows according')
+  //     console.log(rows)
+  //     let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
+  //     setRows(rows.map(r => r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r));
+  //   } catch (error) {
+  //     console.error("Error fetching prices:", error);
+  //   }
+  // };
 
   const handleConcealChange = (rowId) => {
     const updatedRows = rows.map((row) => {
@@ -199,16 +275,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     setRows(updatedRows);
   };
 
-  const handleSelectBuyToken = (rowId, value) => {
-    setRows(
-      rows.map((row) => {
-        if (row.id === rowId) {
-          return { ...row, toToken: value };
-        }
-        return row;
-      })
-    );
-  };
+
 
   useEffect(() => {
     // const newConnection = new web3.Connection(
@@ -253,8 +320,8 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
         return "SOL";
       case "USDC":
         return "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-      case "ETH":
-        return "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk";
+      case "ACHI":
+        return "4rUfhWTRpjD1ECGjw1UReVhA8G63CrATuoFLRVRkkqhs";
       default:
         console.error("Unknown token:", tokenName);
         return null;
@@ -317,6 +384,7 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
     const fetchPrices = async () => {
       if (fromToken && toToken && sellAmount) {
         try {
+          console.log(rows)
           let priceData = await priceSwap(toToken, fromToken, sellAmount);
           console.log(priceData);
           setRetrievedBuyAmount(priceData.buyQty);
@@ -410,23 +478,16 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
                     />
                   </TableCell>
                   <TableCell>
-                    <Select
-                      onValueChange={(value) =>
-                        handleSelectSellToken(row.id, value)
-                      }
+                  <select
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      value={row.fromToken}
+                      onChange={(e) => handleSelectSellToken(row.id, e)}
                     >
-                      <SelectTrigger className="w-[180px] bg-white">
-                        <SelectValue placeholder="Select Sell Token" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Tokens</SelectLabel>
-                          <SelectItem value="SOL">SOL</SelectItem>
-                          <SelectItem value="USDC">USDC</SelectItem>
-                          <SelectItem value="ETH">ETH</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                    <option value="">Tokens</option>
+                    <option value="SOL">SOL</option>
+                    <option value="USDC">USDC</option>
+                    <option value="ACHI">ACHI</option>
+                  </select>
                   </TableCell>
                   <TableCell className="text-right">
                     <Input
@@ -439,30 +500,24 @@ const handleSellAmountChange = (rowId, newSellAmount) => {
                   </TableCell>
                   <TableCell>
                     {" "}
-                    <Select
-                      onValueChange={(value) =>
-                        handleSelectBuyToken(row.id, value)
-                      }
+                    <select
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      value={row.toToken}
+                      onChange={(e) => handleSelectBuyToken(row.id, e)}
                     >
-                      <SelectTrigger className="w-[180px] bg-white">
-                        <SelectValue placeholder="Select Buy Token" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Tokens</SelectLabel>
-                          <SelectItem value="SOL">SOL</SelectItem>
-                          <SelectItem value="USDC">USDC</SelectItem>
-                          <SelectItem value="ETH">ETH</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                      <option value="">Tokens</option>
+                      <option value="SOL">SOL</option>
+                      <option value="USDC">USDC</option>
+                      <option value="ACHI">ACHI</option>
+                    </select>
+                    
                   </TableCell>
                   <TableCell>
                     <Input
                       disabled
                       type="number"
                       className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      value={retrievedBuyAmount || ""}
+                      value={row.buyAmount || ""}
                       placeholder="Buy Amount"
                     />
                   </TableCell>
