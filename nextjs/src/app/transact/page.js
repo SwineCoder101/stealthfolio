@@ -187,7 +187,7 @@ export default function Swap() {
       if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
         //let toTokenId = getTokenMintAddress(rows[i].toToken);
         //let fromTokenId = getTokenMintAddress(rows[i].fromToken);
-        portfolio.push({ id: rows[i].fromToken, vsToken: rows[i].toToken, amount: rows[i].sellAmount });
+        portfolio.push({ id: rows[i].fromToken, vsToken: rows[i].toToken, amount: rows[i].sellAmount * 10000 });
       } else {
         continue;
       }

@@ -36,6 +36,9 @@ console.log(await user.getBalance());
 
 
 
+
+
+
 const main = async () => {
 ​
   // Replace this with your user's Solana wallet
