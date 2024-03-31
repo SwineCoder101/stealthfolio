@@ -169,7 +169,7 @@ export default function Swap() {
           portfolio.push({
             id: rows[i].toToken,
             vsToken: rows[i].fromToken,
-            amount: rows[i].sellAmount * 10000,
+            amount: rows[i].sellAmount * 100000,
           });
         } else {
           continue;
