@@ -163,11 +163,12 @@ export default function Swap() {
   const submitTransaction = async () => {
     if (connected && publicKey) {
       let portfolio = [];
+      console.log('submitted rows', rows)
       for (let i = 0; i < rows.length; i++) {
         if (rows[i].fromToken !== "" || rows[i].toToken !== "") {
           portfolio.push({
-            id: rows[i].fromToken,
-            vsToken: rows[i].toToken,
+            id: rows[i].toToken,
+            vsToken: rows[i].fromToken,
             amount: rows[i].sellAmount * 10000,
           });
         } else {
@@ -177,6 +178,7 @@ export default function Swap() {
       const pricedPortfolio = await pricePortfolio(portfolio);
 
       const swapItems = pricedPortfolio;
+      console.log('SWAP ITEMS')
       const transactions = await createSwapTransactions(
         swapItems,
         publicKey.toString()
@@ -304,6 +306,8 @@ export default function Swap() {
     const fetchPrices = async () => {
       if (fromToken && toToken && sellAmount) {
         try {
+          console.log("fromToken", fromToken)
+          console.log("toToken", toToken)
           let priceData = await priceSwap(toToken, fromToken, sellAmount);
           setRetrievedBuyAmount(priceData.buyQty);
         } catch (error) {
