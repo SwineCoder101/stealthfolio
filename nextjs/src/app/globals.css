@@ -7,6 +7,16 @@
   background-color: #020617;
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

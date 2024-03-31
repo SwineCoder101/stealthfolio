@@ -19,8 +19,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loader";
 
 export default function Swap() {
   const { publicKey, signAllTransactions, connected, sendTransaction } =
@@ -34,6 +45,11 @@ export default function Swap() {
   const [connection, setConnection] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [confirmationDetails, setConfirmationDetails] = useState('');
+  const [transactionSignature, setTransactionSignature] = useState("");
+
   const [rows, setRows] = useState([
     {
       id: 1,
@@ -160,10 +176,15 @@ export default function Swap() {
     setRows(updatedRows);
   };
 
+  // append signature to block URI, can use solscan to find transaction hash
+  // 1. get signature and find transaction hash - const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
+  // 2. wait for confirmation of transaction await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
+  // 3. Show modal
   const submitTransaction = async () => {
     if (connected && publicKey) {
+      setLoading(true)
       let portfolio = [];
-      console.log('submitted rows', rows)
+      console.log("submitted rows", rows);
       for (let i = 0; i < rows.length; i++) {
         if (rows[i].fromToken !== "" || rows[i].toToken !== "") {
           portfolio.push({
@@ -178,7 +199,7 @@ export default function Swap() {
       const pricedPortfolio = await pricePortfolio(portfolio);
 
       const swapItems = pricedPortfolio;
-      console.log('SWAP ITEMS')
+      console.log("SWAP ITEMS");
       const transactions = await createSwapTransactions(
         swapItems,
         publicKey.toString()
@@ -189,17 +210,30 @@ export default function Swap() {
         value: { blockhash, lastValidBlockHeight },
       } = await connection.getLatestBlockhashAndContext();
 
+      try {
       const signature = await sendTransaction(transactions[0], connection, {
         minContextSlot,
       });
+
+      console.log("signature", signature);
+      setTransactionSignature(signature);
+
       let confirmation = await connection.confirmTransaction({
         blockhash,
         lastValidBlockHeight,
         signature,
       });
-
+      if (confirmation) {
+        setConfirmationDetails(blockhash);
+        setShowDialog(true);
+      }
+     } catch (error) {
+      console.error("Transaction canceled:", error);
+      setLoading(false);
+      return;
     }
-  };
+    setLoading(false);
+  }};
 
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find((r) => r.id === rowId);
@@ -250,7 +284,6 @@ export default function Swap() {
       alert("You don't have enough tokens to make this trade.");
       return;
     }
-
   };
 
   const getTokenMintAddress = (tokenName) => {
@@ -306,8 +339,8 @@ export default function Swap() {
     const fetchPrices = async () => {
       if (fromToken && toToken && sellAmount) {
         try {
-          console.log("fromToken", fromToken)
-          console.log("toToken", toToken)
+          console.log("fromToken", fromToken);
+          console.log("toToken", toToken);
           let priceData = await priceSwap(toToken, fromToken, sellAmount);
           setRetrievedBuyAmount(priceData.buyQty);
         } catch (error) {
@@ -350,9 +383,7 @@ export default function Swap() {
               src="/solana.png"
               alt="Picture of the author"
             />
-            {hasMounted && (
-            <WalletMultiButton />
-          )}
+            {hasMounted && <WalletMultiButton />}
           </div>
         </div>
         <div className="p-8 space-y-4">
@@ -487,13 +518,15 @@ export default function Swap() {
             </TableBody>
           </Table>
           <div className="flex flex-col items-center">
+          {!loading ? (<>
             <button
               type="submit"
               className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
               onClick={() => submitTransaction()}
             >
               Transact
-            </button>
+            </button></>) :
+            (<LoadingSpinner />)}
           </div>
           {jupPriceData.buyTkId != null && (
             <div>
@@ -506,6 +539,25 @@ export default function Swap() {
           )}
         </div>
       </div>
+      {hasMounted && (
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit profile</DialogTitle>
+              <div>
+                {transactionSignature && <a href={`https://solscan.io/tx/${transactionSignature}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                ><p className="">View your transaction on SolScan: {transactionSignature}</p></a>}
+              </div>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4"></div>
+              <div className="grid grid-cols-4 items-center gap-4"></div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
