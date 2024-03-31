@@ -40,7 +40,6 @@ export default function Swap() {
   const [retrievedBuyAmount, setRetrievedBuyAmount] = useState(0);
   const [usdEquivalent, setUsdEquivalent] = useState(0);
   const [amount, setAmount] = useState(0);
-  const [hasMounted, setHasMounted] = useState(false);
   const [accountBalance, setAccountBalance] = useState(null);
   const [jupPriceData, setJupPriceData] = useState({});
   const [connection, setConnection] = useState(null);
@@ -91,11 +90,6 @@ export default function Swap() {
   const prevRowsRef = useRef(rows);
 
   const RPC = process.env.NEXT_PUBLIC_MAINNET_RPC;
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
 
   const removeRow = (rowId) => {
     if (rows.length > 1 && !isRemoving) {
@@ -241,8 +235,8 @@ export default function Swap() {
   
     try {
       console.log('Updating buy amount for row', rowId);
-      //let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
-      let priceData = 20; 
+      let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
+  
       setRows(currentRows => 
         currentRows.map(r => r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r)
       );
@@ -406,183 +400,30 @@ export default function Swap() {
   }, [fromToken, sellAmount, toToken]);
 
   return (
-    <div className="h-screen bg-black">
+    <div className="h-screen bg-[#0f181f]">
       <div className="hidden h-full flex-col md:flex">
-        <div className="bg-black text-white container flex flex-col items-start justify-between space-y-2 py-4 sm:flex-row sm:items-center sm:space-y-0 md:h-16 border-b border-gray-900">
+        <div className="bg-[#0f181f] text-white container flex flex-col items-start justify-between space-y-2 py-4 sm:flex-row sm:items-center sm:space-y-0 md:h-16 border-b border-[#232d3c]">
           <div className="flex flex-row space-x-2">
-            <div className="bg-gray-900 rounded-lg h-8 w-8 p-1">
-              <Image
-                src="/stealthy.png"
-                width={30}
-                height={30}
-                alt="Picture of the author"
-              />
-            </div>
-            <h2 className="text-2xl font-light text-gray-200">
-              <b>Stealth</b>folio
+            <h2 className="text-3xl text-gray-200 tracking-wide" >
+              <b>RIFT</b>
             </h2>
-            <p className="text-white text-xs my-auto pl-8 underline">
-              transact
-            </p>
-            <p className="text-white text-xs my-auto pl-8">portfolio</p>
-            <p className="text-white text-xs my-auto pl-8 w-32">
-              funds
-            </p>
-          </div>
-          <div className="ml-auto flex w-full space-x-2 sm:justify-end">
-            <p className="my-auto font-light">powered by solana</p>
-            <img
-              className="h-[2%] w-[2%] my-auto"
-              src="/solana.png"
-              alt="Picture of the author"
-            />
-            {hasMounted && (
-            <WalletMultiButton />
-            )}
-          </div>
-        </div>
-        <div className="p-8 space-y-4">
-          <p className="text-2xl text-white font-light text-center">
-            Order book
-          </p>
-          <Table className="w-50 mx-auto">
-            <TableCaption>Concealed trades are completely invisible to malicious market participants.</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Trade Id</TableHead>
-                <TableHead>Codename</TableHead>
-                <TableHead>Sell Token</TableHead>
-                <TableHead>
-                  Sell Amount{" "}
-                  {accountBalance !== null && (
-                    <span>(Max available to sell: {accountBalance})</span>
-                  )}
-                </TableHead>
-                <TableHead>Buy Token</TableHead>
-                <TableHead>Buy Amount</TableHead>
-                <TableHead className="text-right">Conceal</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {rows.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    {" "}
-                    <Input
-                      type="text"
-                      disabled
-                      placeholder={`TR${index + 1}`}
-                      className="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="text"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      placeholder="codename"
-                      value={row.name}
-                      onChange={(e) => handleNameChange(row.id, e.target.value)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                  <select
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      value={row.fromToken}
-                      onChange={(e) => handleSelectSellToken(row.id, e)}
-                    >
-                    <option value="">Tokens</option>
-                    <option value="SOL">SOL</option>
-                    <option value="USDC">USDC</option>
-                    <option value="ACHI">ACHI</option>
-                  </select>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      placeholder="Sell Amount"
-                      value={row.sellAmount}
-                        onChange={(e) => handleSellAmountChange(row.id, e.target.value)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {" "}
-                    <select
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      value={row.toToken}
-                      onChange={(e) => handleSelectBuyToken(row.id, e)}
-                    >
-                      <option value="">Tokens</option>
-                      <option value="SOL">SOL</option>
-                      <option value="USDC">USDC</option>
-                      <option value="ACHI">ACHI</option>
-                    </select>
-                    
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      disabled
-                      type="number"
-                      className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      value={row.buyAmount || ""}
-                      placeholder="Buy Amount"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex">
-                      <Switch id="airplane-mode" checked={row.concealed} onCheckedChange={() => handleConcealChange(row.id)}/>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-white bold hover:cursor-pointer text-lg">
-                    {rows.length === 1 && (
-                      <span
-                        onClick={addNewRow}
-                        className="cursor-pointer text-lg p-2"
-                      >
-                        +
-                      </span>
-                    )}
-                    {rows.length > 1 && index !== rows.length - 1 && (
-                      <span
-                        onClick={() => removeRow(row.id)}
-                        className="cursor-pointer text-lg p-2"
-                      >
-                        -
-                      </span>
-                    )}
-                    {index === rows.length - 1 && rows.length !== 1 && (
-                      <span
-                        onClick={addNewRow}
-                        className="cursor-pointer text-lg p-2"
-                      >
-                        +
-                      </span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="flex flex-col items-center">
-            <button
-              type="submit"
-              className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-              onClick={() => submitTransaction()}
-            >
-              Transact
-            </button>
-          </div>
-          {jupPriceData.buyTkId != null && (
-            <div>
-              <p>Buy Token ID: {jupPriceData.buyTkId}</p>
-              <p>Buy Quantity: {jupPriceData.buyQty}</p>
-              <p>Sell Token ID: {jupPriceData.sellTkId}</p>
-              <p>Sell Quantity: {jupPriceData.sellQty}</p>
-              <p>USD Price: {jupPriceData.usdPrice}</p>
             </div>
-          )}
+            <div className="flex align-center items-center tracking-tight font-medium" style={{ fontFamily: "var(--font-roboto-mono), monospace" }}>
+            <p className="text-[#7d8b95] text-xs my-auto pl-8" >
+              TRANSACT
+            </p>
+            <p className="text-[#7d8b95] text-xs my-auto pl-8">PORTFOLIO</p>
+            <p className="text-[#7d8b95] text-xs my-auto pl-8 w-32">
+              FUNDS
+            </p>
+            </div>
+          <div className="flex">
+            <span className="border border-[#1c2836] bg-[#0c1c28] p-2 tracking-tight font-medium" style={{ fontFamily: "var(--font-roboto-mono), monospace" }}>
+              <p className="my-auto text-xs">SIGN IN</p>
+            </span>
+          </div>
         </div>
+       
       </div>
     </div>
   );
