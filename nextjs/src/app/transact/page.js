@@ -57,7 +57,28 @@ export default function Swap() {
       console.log("key", publicKey)
       const transactions = await createSwapTransactions(rows, publicKey.toString());
       const connection = connectionRef.current;
-  
+      console.log('running')
+    let portfolio = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
+        //let toTokenId = getTokenMintAddress(rows[i].toToken);
+        //let fromTokenId = getTokenMintAddress(rows[i].fromToken);
+        portfolio.push({ id: rows[i].fromToken, vsToken: rows[i].toToken, amount: rows[i].sellAmount * 10000 });
+      } else {
+        continue;
+      }
+    }
+    console.log(portfolio);
+    const pricedPortfolio = await pricePortfolio(portfolio);
+    console.log(pricedPortfolio);
+
+    const swapItems = pricedPortfolio;
+    console.log('swap items:', swapItems)
+    console.log('public key:', publicKey.toString())
+    const transactions = await createSwapTransactions(swapItems, publicKey.toString());
+    console.log('transactions', transactions);
+    // const signedTransactions = await signAllTransactions(transactions);
+
       const {
         context: { slot: minContextSlot },
         value: { blockhash, lastValidBlockHeight },
