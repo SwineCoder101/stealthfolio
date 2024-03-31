@@ -3,8 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { Connection } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { priceSwap, pricePortfolio, createSwapTransactions, confirmTransactions, confirmTransaction } from "../client/JupiterClient";
-import bs58 from "bs58";
+import {
+  priceSwap,
+  pricePortfolio,
+  createSwapTransactions,
+} from "../client/JupiterClient";
 import Image from "next/image";
 import * as web3 from "@solana/web3.js";
 import {
@@ -18,33 +21,19 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import base58 from "bs58";
-import { send } from "process";
 
 export default function Swap() {
-  const { publicKey, signAllTransactions, connected, sendTransaction } = useWallet();
-  const [name, setName] = useState("");
+  const { publicKey, signAllTransactions, connected, sendTransaction } =
+    useWallet();
   const [fromToken, setFromToken] = useState("");
   const [sellAmount, setSellAmount] = useState(0);
   const [toToken, setToToken] = useState("");
   const [lastUpdatedRowId, setLastUpdatedRowId] = useState(null);
-  const [retrievedBuyAmount, setRetrievedBuyAmount] = useState(0);
-  const [usdEquivalent, setUsdEquivalent] = useState(0);
-  const [amount, setAmount] = useState(0);
   const [accountBalance, setAccountBalance] = useState(null);
   const [jupPriceData, setJupPriceData] = useState({});
   const [connection, setConnection] = useState(null);
-  const timeoutRef = useRef(null);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [rows, setRows] = useState([
     {
       id: 1,
@@ -87,9 +76,12 @@ export default function Swap() {
     };
     setRows([...rows, newRow]);
   };
-  const prevRowsRef = useRef(rows);
 
   const RPC = process.env.NEXT_PUBLIC_MAINNET_RPC;
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const removeRow = (rowId) => {
     if (rows.length > 1 && !isRemoving) {
@@ -100,71 +92,64 @@ export default function Swap() {
   };
 
   const handleSellAmountChange = async (rowId, newSellAmount) => {
-    const updatedRows = rows.map(row => {
+    const updatedRows = rows.map((row) => {
       if (row.id === rowId) {
         return { ...row, sellAmount: newSellAmount };
       }
       return row;
     });
-  
+
     setRows(updatedRows);
     setLastUpdatedRowId(rowId);
   };
 
   useEffect(() => {
-    // Function to compare relevant row data
     const isRowChanged = (prevRow, newRow) => {
-      return prevRow.fromToken !== newRow.fromToken ||
-             prevRow.sellAmount !== newRow.sellAmount ||
-             prevRow.toToken !== newRow.toToken;
+      return (
+        prevRow.fromToken !== newRow.fromToken ||
+        prevRow.sellAmount !== newRow.sellAmount ||
+        prevRow.toToken !== newRow.toToken
+      );
     };
-  
-    // Map to store the latest row data for comparison
+
     const latestRowData = new Map();
-  
-    rows.forEach(row => {
+
+    rows.forEach((row) => {
       const prevRowData = latestRowData.get(row.id) || {};
       if (isRowChanged(prevRowData, row)) {
-        // Update the buy amount if the relevant data has changed
         updateBuyAmountForRow(row.id);
       }
-      // Update the map with the latest row data
       latestRowData.set(row.id, { ...row });
     });
-  
-    // Cleanup function to clear the map
+
     return () => latestRowData.clear();
-  }, [rows]); // Watch for changes in the rows
-  
+  }, [rows]);
 
   const handleSelectSellToken = (rowId, e) => {
     const newValue = e.target.value;
-   
-    setRows(rows.map(row => {
-      if (row.id === rowId) {
-        return { ...row, fromToken: newValue };
-      }
-      console.log(rowId)
-      console.log(newValue)
-      console.log('return row')
-      return row;
-    }));
-    // setTimeout(() => {
-    //   console.log('buy run 2')
-    //   updateBuyAmountForRow(rowId);
-    // }, 2000);
+
+    setRows(
+      rows.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, fromToken: newValue };
+        }
+        return row;
+      })
+    );
   };
-  
+
   const handleSelectBuyToken = (rowId, e) => {
     const newValue = e.target.value;
-    setRows(rows.map(row => {
-      if (row.id === rowId) {
-        return { ...row, toToken: newValue };
-      }
-      return row;
-    }));
+    setRows(
+      rows.map((row) => {
+        if (row.id === rowId) {
+          return { ...row, toToken: newValue };
+        }
+        return row;
+      })
+    );
   };
-  
+
   const handleNameChange = (rowId, newName) => {
     const updatedRows = rows.map((row) => {
       if (row.id === rowId) {
@@ -172,98 +157,70 @@ export default function Swap() {
       }
       return row;
     });
-    console.log(rows)
     setRows(updatedRows);
   };
 
   const submitTransaction = async () => {
-    console.log(connected)
-    console.log(publicKey)
-    console.log('RUNNING')
     if (connected && publicKey) {
-      console.log('running')
-    let portfolio = [];
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i].fromToken !== '' || rows[i].toToken !== '') {
-        //let toTokenId = getTokenMintAddress(rows[i].toToken);
-        //let fromTokenId = getTokenMintAddress(rows[i].fromToken);
-        portfolio.push({ id: rows[i].fromToken, vsToken: rows[i].toToken, amount: rows[i].sellAmount * 10000 });
-      } else {
-        continue;
+      let portfolio = [];
+      console.log('submitted rows', rows)
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].fromToken !== "" || rows[i].toToken !== "") {
+          portfolio.push({
+            id: rows[i].toToken,
+            vsToken: rows[i].fromToken,
+            amount: rows[i].sellAmount * 100000,
+          });
+        } else {
+          continue;
+        }
       }
-    }
-    console.log(portfolio);
-    const pricedPortfolio = await pricePortfolio(portfolio);
-    console.log(pricedPortfolio);
+      const pricedPortfolio = await pricePortfolio(portfolio);
 
-    const swapItems = pricedPortfolio;
-    console.log('swap items:', swapItems)
-    console.log('public key:', publicKey.toString())
-    const transactions = await createSwapTransactions(swapItems, publicKey.toString());
-    console.log('transactions', transactions);
-    // const signedTransactions = await signAllTransactions(transactions);
+      const swapItems = pricedPortfolio;
+      console.log('SWAP ITEMS')
+      const transactions = await createSwapTransactions(
+        swapItems,
+        publicKey.toString()
+      );
 
       const {
         context: { slot: minContextSlot },
         value: { blockhash, lastValidBlockHeight },
-    } = await connection.getLatestBlockhashAndContext();
+      } = await connection.getLatestBlockhashAndContext();
 
+      const signature = await sendTransaction(transactions[0], connection, {
+        minContextSlot,
+      });
+      let confirmation = await connection.confirmTransaction({
+        blockhash,
+        lastValidBlockHeight,
+        signature,
+      });
 
-    const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
-    console.log(signature)
-    let confirmation = await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
-    
-    console.log(confirmation)
-    // const signatures = signedTransactions.map(t => t.signatures);
-    // console.log('signatures', signatures);
-    // await confirmTransactions(transactions, base58.encode(signedTransactions[0].signatures[0]));
-
-    //signature
-    // await confirmTransaction(base58.encode(signature),connection);
     }
-  }
+  };
 
-  
   const updateBuyAmountForRow = async (rowId) => {
-    const row = rows.find(r => r.id === rowId);
+    const row = rows.find((r) => r.id === rowId);
     if (!row || !row.fromToken || !row.toToken || !row.sellAmount) {
-      console.log("Incomplete input for price update");
       return;
     }
-  
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     try {
-      console.log('Updating buy amount for row', rowId);
-      let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
-  
-      setRows(currentRows => 
-        currentRows.map(r => r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r)
+      //let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
+      let priceData = 20;
+      setRows((currentRows) =>
+        currentRows.map((r) =>
+          r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r
+        )
       );
     } catch (error) {
       console.error("Error fetching prices:", error);
     }
   };
-  
-
-  
-  // const updateBuyAmountForRow = async (rowId) => {
-  //   console.log('buy run')
-  //   console.log(rowId)
-  //   const row = rows.find(r => r.id === rowId);
-  //   if (!row.fromToken || !row.toToken || !row.sellAmount) {
-  //     console.log("Incomplete input for price update");
-  //     return;
-  //   }
-  //   try {
-  //     console.log('rows according')
-  //     console.log(rows)
-  //     let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
-  //     setRows(rows.map(r => r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r));
-  //   } catch (error) {
-  //     console.error("Error fetching prices:", error);
-  //   }
-  // };
 
   const handleConcealChange = (rowId) => {
     const updatedRows = rows.map((row) => {
@@ -275,14 +232,8 @@ export default function Swap() {
     setRows(updatedRows);
   };
 
-
-
   useEffect(() => {
-    // const newConnection = new web3.Connection(
-    //   web3.clusterApiUrl("mainnet-beta"),
-    //   "confirmed"
-    // );
-    const newConnection = new Connection(RPC, 'confirmed');
+    const newConnection = new Connection(RPC, "confirmed");
     setConnection(newConnection);
   }, []);
 
@@ -292,7 +243,6 @@ export default function Swap() {
       return;
     }
 
-    // Check balance is sufficient
     const tokenMintAddress = getTokenMintAddress(fromToken);
     const currentBalance = await getTokenBalance(tokenMintAddress);
 
@@ -301,17 +251,6 @@ export default function Swap() {
       return;
     }
 
-    console.log("Swapping tokens...");
-  };
-
-  const getPrices = async () => {
-    if (fromToken && toToken && sellAmount) {
-      let priceData = await priceSwap(toToken, fromToken, sellAmount);
-      console.log(priceData);
-      setJupPriceData(priceData);
-    } else {
-      console.log("Incomplete input");
-    }
   };
 
   const getTokenMintAddress = (tokenName) => {
@@ -332,11 +271,9 @@ export default function Swap() {
     if (!connected || !publicKey || !connection) return;
 
     let balance = 0;
-    console.log("tokenMintAddress", tokenMintAddress);
     if (tokenMintAddress === "SOL") {
       balance =
         (await connection.getBalance(publicKey)) / web3.LAMPORTS_PER_SOL;
-      console.log("SOL balance:", balance);
     } else {
       const tokenMint = new web3.PublicKey(tokenMintAddress);
       const accounts = await connection.getParsedTokenAccountsByOwner(
@@ -350,7 +287,6 @@ export default function Swap() {
       }
     }
 
-    console.log(`Balance for ${tokenMintAddress}: ${balance}`);
     return balance;
   };
 
@@ -358,41 +294,27 @@ export default function Swap() {
     const updateTokenBalance = async () => {
       if (fromToken && connected) {
         const tokenMintAddress = getTokenMintAddress(fromToken);
-        console.log("TOKEN MINT ADDRESS", tokenMintAddress);
         const balance = await getTokenBalance(tokenMintAddress);
-        console.log("BALANCE", balance);
         setAccountBalance(balance);
       }
     };
 
-    // const updateUSDEquivalent = async () => {
-    //     if (fromToken && wallet.connected) {
-    //     const tokenMintAddress = getTokenMintAddress(fromToken);
-    //     console.log('TOKEN MINT ADDRESS', tokenMintAddress)
-    //     let priceData = await priceSwap(tokenMintAddress, tokenMintAddress, sellAmount);
-    //     const usdEquivalent = priceData.usdPrice;
-    //     console.log('USD Equivalent', usdEquivalent.usdPrice)
-    //     setUsdEquivalent(usdEquivalent)
-    //     }
-    // };
-
     updateTokenBalance();
-    // updateUSDEquivalent()
   }, [fromToken, connected, publicKey]);
 
   useEffect(() => {
     const fetchPrices = async () => {
       if (fromToken && toToken && sellAmount) {
         try {
-          console.log(rows)
+          console.log("fromToken", fromToken)
+          console.log("toToken", toToken)
           let priceData = await priceSwap(toToken, fromToken, sellAmount);
-          console.log(priceData);
           setRetrievedBuyAmount(priceData.buyQty);
         } catch (error) {
           console.error("Error fetching prices:", error);
         }
       } else {
-        console.log("Incomplete input");
+        return;
       }
     };
 
@@ -419,9 +341,7 @@ export default function Swap() {
               transact
             </p>
             <p className="text-white text-xs my-auto pl-8">portfolio</p>
-            <p className="text-white text-xs my-auto pl-8 w-32">
-              funds
-            </p>
+            <p className="text-white text-xs my-auto pl-8 w-32">funds</p>
           </div>
           <div className="ml-auto flex w-full space-x-2 sm:justify-end">
             <p className="my-auto font-light">powered by solana</p>
@@ -430,7 +350,9 @@ export default function Swap() {
               src="/solana.png"
               alt="Picture of the author"
             />
+            {hasMounted && (
             <WalletMultiButton />
+          )}
           </div>
         </div>
         <div className="p-8 space-y-4">
@@ -438,7 +360,10 @@ export default function Swap() {
             Order book
           </p>
           <Table className="w-50 mx-auto">
-            <TableCaption>Concealed trades are completely invisible to malicious market participants.</TableCaption>
+            <TableCaption>
+              Concealed trades are completely invisible to malicious market
+              participants.
+            </TableCaption>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">Trade Id</TableHead>
@@ -478,16 +403,16 @@ export default function Swap() {
                     />
                   </TableCell>
                   <TableCell>
-                  <select
+                    <select
                       className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
                       value={row.fromToken}
                       onChange={(e) => handleSelectSellToken(row.id, e)}
                     >
-                    <option value="">Tokens</option>
-                    <option value="SOL">SOL</option>
-                    <option value="USDC">USDC</option>
-                    <option value="ACHI">ACHI</option>
-                  </select>
+                      <option value="">Tokens</option>
+                      <option value="SOL">SOL</option>
+                      <option value="USDC">USDC</option>
+                      <option value="ACHI">ACHI</option>
+                    </select>
                   </TableCell>
                   <TableCell className="text-right">
                     <Input
@@ -495,7 +420,9 @@ export default function Swap() {
                       className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
                       placeholder="Sell Amount"
                       value={row.sellAmount}
-                        onChange={(e) => handleSellAmountChange(row.id, e.target.value)}
+                      onChange={(e) =>
+                        handleSellAmountChange(row.id, e.target.value)
+                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -510,7 +437,6 @@ export default function Swap() {
                       <option value="USDC">USDC</option>
                       <option value="ACHI">ACHI</option>
                     </select>
-                    
                   </TableCell>
                   <TableCell>
                     <Input
@@ -523,7 +449,11 @@ export default function Swap() {
                   </TableCell>
                   <TableCell>
                     <div className="flex">
-                      <Switch id="airplane-mode" checked={row.concealed} onCheckedChange={() => handleConcealChange(row.id)}/>
+                      <Switch
+                        id="airplane-mode"
+                        checked={row.concealed}
+                        onCheckedChange={() => handleConcealChange(row.id)}
+                      />
                     </div>
                   </TableCell>
                   <TableCell className="text-white bold hover:cursor-pointer text-lg">
