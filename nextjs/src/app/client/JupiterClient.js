@@ -101,7 +101,7 @@ async function priceSwap(buyTkId, sellTkId, amount) {
         //pass in platformFeeBps as a parameter in the quote.
         console.log('sellTkAddress', sellTokenInfo.address);
         console.log('buyTkAddress', buyTokenInfo.address);
-        console.log('buyQTY', swapItem.buyQty);
+        console.log('sellQTY', swapItem.sellQty);
         console.log('buyDecimals', buyTokenInfo.decimals);
         const quoteUrl =`https://quote-api.jup.ag/v6/quote?inputMint=${sellTokenInfo.address}&outputMint=${buyTokenInfo.address}&amount=${swapItem.sellQty * 10 ^ buyTokenInfo.decimals}&slippageBps=50`;
         const quoteResponseRaw = await (await fetch(quoteUrl)).json();
