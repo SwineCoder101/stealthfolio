@@ -200,23 +200,29 @@ export default function Swap() {
     console.log('swap items:', swapItems)
     console.log('public key:', publicKey.toString())
     const transactions = await createSwapTransactions(swapItems, publicKey.toString());
-    console.log('transactions', transactions);
-    // const signedTransactions = await signAllTransactions(transactions);
+    console.log('transactions : ', transactions);
+
+    const signedTransactions = await signAllTransactions(transactions);
+
+    console.log('signed transactions : ', signedTransactions);
 
       const {
         context: { slot: minContextSlot },
         value: { blockhash, lastValidBlockHeight },
     } = await connection.getLatestBlockhashAndContext();
 
+    //execute the transactions
+    // const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
+    // console.log('signature found , ', signature);
+    // let confirmation = await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
+    // console.log("confirmation when through -------> ",confirmation)
 
-    const signature = await sendTransaction(transactions[0], connection, { minContextSlot });
-    console.log(signature)
-    let confirmation = await connection.confirmTransaction({ blockhash, lastValidBlockHeight, signature });
-    
-    console.log(confirmation)
-    // const signatures = signedTransactions.map(t => t.signatures);
-    // console.log('signatures', signatures);
-    // await confirmTransactions(transactions, base58.encode(signedTransactions[0].signatures[0]));
+    const signatures = signedTransactions.map(t => base58.encode(t.signatures[0]));
+    console.log('signatures : ', signatures);
+
+    const confirmation = await confirmTransactions(signedTransactions);
+
+    console.log('confirmation : ', confirmation);
 
     //signature
     // await confirmTransaction(base58.encode(signature),connection);
@@ -227,14 +233,14 @@ export default function Swap() {
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find(r => r.id === rowId);
     if (!row || !row.fromToken || !row.toToken || !row.sellAmount) {
-      console.log("Incomplete input for price update");
+      // console.log("Incomplete input for price update");
       return;
     }
   
     await new Promise(resolve => setTimeout(resolve, 2000));
   
     try {
-      console.log('Updating buy amount for row', rowId);
+      // console.log('Updating buy amount for row', rowId);
       let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
   
       setRows(currentRows => 
@@ -562,7 +568,7 @@ export default function Swap() {
               className="bg-gray-50 py-2 px-8 text-lg border border-gray-300 hover:bg-gray-200 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
               onClick={() => submitTransaction()}
             >
-              Transact
+                Transact
             </button>
           </div>
           {jupPriceData.buyTkId != null && (

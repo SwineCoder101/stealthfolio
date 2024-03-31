@@ -2,7 +2,7 @@ import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 // import { TokenInfo } from "@solana/spl-token-registry"
 import fetch from 'cross-fetch';
 // import { Wallet } from '@project-serum/anchor';
-// import bs58 from 'bs58';
+import base58 from "bs58";
 import dotenv from 'dotenv';
 
 
@@ -100,7 +100,7 @@ async function priceSwap(buyTkId, sellTkId, amount) {
     
         //pass in platformFeeBps as a parameter in the quote.
     
-        const quoteUrl =`https://quote-api.jup.ag/v6/quote?inputMint=${sellTokenInfo.address}&outputMint=${buyTokenInfo.address}&amount=${swapItem.buyQty * 10 ^ buyTokenInfo.decimals}&slippageBps=50`;
+        const quoteUrl =`https://quote-api.jup.ag/v6/quote?inputMint=${sellTokenInfo.address}&outputMint=${buyTokenInfo.address}&amount=${swapItem.buyQty * 10 ^ buyTokenInfo.decimals}&slippageBps=50&asLegacyTransaction=true`;
         const quoteResponseRaw = await (await fetch(quoteUrl)).json();
           
         console.log({ quoteResponseRaw });
@@ -139,7 +139,7 @@ async function priceSwap(buyTkId, sellTkId, amount) {
             return transaction;
     }));
 
-    console.dir(transactions, { depth: null });
+    console.dir('created transactions: ',transactions, { depth: null });
     return transactions;
         // // sign the transaction
         // transaction.sign([wallet.payer]);
@@ -160,16 +160,25 @@ async function priceSwap(buyTkId, sellTkId, amount) {
         // console.log(`https://solscan.io/tx/${signature}`);
 }
 
-async function confirmTransactions(transactions, signature){
+async function confirmTransactions(signedTransactions){
   console.log('confirming transactions')
-    console.log(transactions)
-    console.log(signature)
+    console.log(signedTransactions)
     const connection = new Connection(RPC, 'confirmed');
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-    await Promise.all(transactions.map(async (transaction) => {
-        await connection.confirmTransaction({signature, blockhash, lastValidBlockHeight});
-    }));
+    signedTransactions.forEach(async (transaction) => {
+        const signature = base58.encode(transaction.signatures[0]);
+        console.log("signature: ",signature);
+        const confirmation = await connection.confirmTransaction({signature, blockhash, lastValidBlockHeight});
+        console.log("confirmation: ",confirmation);
+    });
+
+    // await Promise.all(signedTransactions.map(async (transaction) => {
+    //     const signature = base58.encode(transaction.signatures[0]);
+    //     console.log("signature: ",signature);
+    //     const confirmation = await connection.confirmTransaction({signature, blockhash, lastValidBlockHeight});
+    //     console.log("confirmation: ",confirmation);
+    // }));
 }
 
 async function confirmTransaction(signature,connection){

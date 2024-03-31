@@ -12,7 +12,7 @@ let rpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC;
 const provider = await light.Provider.init({
     wallet: solanaWallet,
     relayer: testRelayer,
-    confirmConfig
+      confirmConfig
   });
 
 const user = await light.User.init({ provider });
