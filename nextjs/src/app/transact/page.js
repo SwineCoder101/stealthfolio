@@ -46,6 +46,7 @@ export default function Swap() {
   const [isRemoving, setIsRemoving] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const [lastSellAmtUpdate, setLastSellAmtUpdate] = useState(0);
+  const [lastBuyAmtUpdate, setLastBuyAmtUpdate] = useState(0);
   const [showDialog, setShowDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmationDetails, setConfirmationDetails] = useState('');
@@ -118,11 +119,69 @@ export default function Swap() {
     console.log(newSellAmount)
     setRows(updatedRows);
     setLastSellAmtUpdate(newSellAmount)
-    console.log(newsellAmount)
+    console.log(newSellAmount)
     setLastUpdatedRowId(rowId);
     updateBuyAmountForRow(rowId);
   };
 
+  const handleBuyAmountChange = async (rowId, newBuyAmount) => {
+    const updatedRows = rows.map((row) => {
+      if (row.id === rowId) {
+        return { ...row, buyAmount: newBuyAmount };
+      }
+      return row;
+    });
+    setRows(updatedRows);
+    setLastBuyAmtUpdate(newBuyAmount)
+    setLastUpdatedRowId(rowId);
+    updateSellAmountForRow(rowId);
+  };
+  
+  const updateSellAmountForRow = async (rowId) => {
+    const row = rows.find((r) => r.id === rowId);
+    if (!row || !row.fromToken || !row.toToken || !row.buyAmount) {
+      console.log("Incomplete input for price update");
+      return;
+    }
+  
+    try {
+      console.log('running');
+      console.log(row.fromToken, row.toToken, row.buyAmount);
+      let priceData = await priceSwap(row.fromToken, row.toToken, row.buyAmount);
+      setRows((currentRows) =>
+        currentRows.map((r) =>
+          r.id === rowId ? { ...r, sellAmount: priceData.sellQty } : r
+        )
+      );
+
+
+    } catch (error) {
+      console.error("Error fetching prices:", error);
+    }
+  };
+
+  useEffect(() => {
+    const isRowChanged = (prevRow, newRow) => {
+      return (
+        prevRow.fromToken !== newRow.fromToken ||
+        prevRow.sellAmount !== newRow.sellAmount ||
+        prevRow.toToken !== newRow.toToken
+      );
+    };
+
+    const latestRowData = new Map();
+
+    rows.forEach((row) => {
+      const prevRowData = latestRowData.get(row.id) || {};
+      if (isRowChanged(prevRowData, row)) {
+        updateBuyAmountForRow(row.id);
+      }
+      latestRowData.set(row.id, { ...row });
+    });
+
+    return () => latestRowData.clear();
+  }, [lastSellAmtUpdate]);
+  
   useEffect(() => {
     const isRowChanged = (prevRow, newRow) => {
       return (
@@ -239,6 +298,7 @@ export default function Swap() {
     setLoading(false);
   }};
 
+  
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find((r) => r.id === rowId);
     if (!row || !row.fromToken || !row.toToken || !row.sellAmount) {
@@ -449,15 +509,15 @@ export default function Swap() {
                     </select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      placeholder="Sell Amount"
-                      value={row.sellAmount}
-                      onChange={(e) =>
-                        handleSellAmountChange(row.id, e.target.value)
-                      }
-                    />
+                  <Input
+                    type="number"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                    placeholder="Sell Amount"
+                    value={row.buyAmount === '' ? 0 : row.sellAmount}
+                    onChange={(e) =>
+                      handleSellAmountChange(row.id, e.target.value)
+                    }
+                  />
                   </TableCell>
                   <TableCell>
                     {" "}
@@ -473,13 +533,15 @@ export default function Swap() {
                     </select>
                   </TableCell>
                   <TableCell>
-                    <Input
-                      disabled
-                      type="number"
-                      className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      value={row.buyAmount || ""}
-                      placeholder="Buy Amount"
-                    />
+                  <Input
+                    type="number"
+                    className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                    placeholder="Buy Amount"
+                    value={row.sellAmount === '' ? 0 : row.buyAmount}
+                    onChange={(e) =>
+                      handleBuyAmountChange(row.id, e.target.value)
+                    }
+                  />
                   </TableCell>
                   <TableCell>
                     <div className="flex">
