@@ -45,6 +45,7 @@ export default function Swap() {
   const [connection, setConnection] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [lastSellAmtUpdate, setLastSellAmtUpdate] = useState(0);
   const [showDialog, setShowDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmationDetails, setConfirmationDetails] = useState('');
@@ -114,9 +115,12 @@ export default function Swap() {
       }
       return row;
     });
-
+    console.log(newSellAmount)
     setRows(updatedRows);
+    setLastSellAmtUpdate(newSellAmount)
+    console.log(newsellAmount)
     setLastUpdatedRowId(rowId);
+    updateBuyAmountForRow(rowId);
   };
 
   useEffect(() => {
@@ -139,7 +143,7 @@ export default function Swap() {
     });
 
     return () => latestRowData.clear();
-  }, [rows]);
+  }, [lastSellAmtUpdate]);
 
   const handleSelectSellToken = (rowId, e) => {
     const newValue = e.target.value;
@@ -238,14 +242,13 @@ export default function Swap() {
   const updateBuyAmountForRow = async (rowId) => {
     const row = rows.find((r) => r.id === rowId);
     if (!row || !row.fromToken || !row.toToken || !row.sellAmount) {
+      console.log("Incomplete input for price update");
       return;
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
+  
     try {
-      //let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
-      let priceData = 20;
+      let priceData = await priceSwap(row.toToken, row.fromToken, row.sellAmount);
+      console.log(priceData)
       setRows((currentRows) =>
         currentRows.map((r) =>
           r.id === rowId ? { ...r, buyAmount: priceData.buyQty } : r
@@ -561,3 +564,7 @@ export default function Swap() {
     </div>
   );
 }
+
+// update buy amount everytime the sell amount is changed
+// display equivillent USD value on right side of sell amount box
+// ungray buy make it bi-directional
